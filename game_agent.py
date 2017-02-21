@@ -44,7 +44,7 @@ def custom_score(game, player):
 
     if game.is_winner(player):
         return float("inf")
-    return float(len(game.get_legal_moves(player)) - 2 * len(game.get_legal_moves(game.inactive_player)))
+    return float(len(game.get_legal_moves(player))# - 2 * len(game.get_legal_moves(game.get_opponent(player))))
 
 
 class CustomPlayer:
@@ -132,6 +132,10 @@ class CustomPlayer:
         if len(legal_moves) == 0:
             return -1, -1
 
+        if self.method == "minimax":
+            func = self.minimax
+        else:
+            func = self.alphabeta
         depth = 1
         move = None
         try:
@@ -139,11 +143,14 @@ class CustomPlayer:
             # here in order to avoid timeout. The try/except block will
             # automatically catch the exception raised by the search method
             # when the timer gets close to expiring
-            while True:
-                score, move = self.minimax(game, depth)
-                depth += 1
-                if score == float("inf") or score == float("-inf"):
-                    return move
+            if self.iterative:
+                while True:
+                    score, move = func(game, depth)
+                    depth += 1
+                    if score == float("inf") or score == float("-inf"):
+                        return move
+            else:
+                _, move = func(game, self.search_depth)
 
         except Timeout:
             # Handle any actions required at timeout, if necessary
@@ -188,7 +195,8 @@ class CustomPlayer:
 
         # TODO: finish this function!
 
-        if depth == 0:
+        moves = game.get_legal_moves(game.active_player)
+        if depth == 0 or len(moves) == 0:
             if maximizing_player:
                 score = self.score(game, game.active_player)
             else:
@@ -200,7 +208,6 @@ class CustomPlayer:
         else:
             func = min
 
-        moves = game.get_legal_moves(game.active_player)
         results = [self.minimax(game.forecast_move(m), depth - 1, not maximizing_player) for m in moves]
         scores = [r[0] for r in results]
         index, score = func(enumerate(scores), key=operator.itemgetter(1))
