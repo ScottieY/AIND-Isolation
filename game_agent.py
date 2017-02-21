@@ -7,7 +7,7 @@ You must test your agent's strength against a set of agents with known
 relative strength using tournament.py and include the results in your report.
 """
 import random
-
+import operator
 
 class Timeout(Exception):
     """Subclass base exception for code clarity."""
@@ -38,7 +38,13 @@ def custom_score(game, player):
     """
 
     # TODO: finish this function!
-    raise NotImplementedError
+
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+    return float(len(game.get_legal_moves(player)) - 2 * len(game.get_legal_moves(game.inactive_player)))
 
 
 class CustomPlayer:
@@ -123,20 +129,28 @@ class CustomPlayer:
         # Perform any required initializations, including selecting an initial
         # move from the game board (i.e., an opening book), or returning
         # immediately if there are no legal moves
+        if len(legal_moves) == 0:
+            return -1, -1
 
+        depth = 1
+        move = None
         try:
             # The search method call (alpha beta or minimax) should happen in
             # here in order to avoid timeout. The try/except block will
             # automatically catch the exception raised by the search method
             # when the timer gets close to expiring
-            pass
+            while True:
+                score, move = self.minimax(game, depth)
+                depth += 1
+                if score == float("inf") or score == float("-inf"):
+                    return move
 
         except Timeout:
             # Handle any actions required at timeout, if necessary
-            pass
+            return move
 
         # Return the best move from the last completed search iteration
-        raise NotImplementedError
+        return move
 
     def minimax(self, game, depth, maximizing_player=True):
         """Implement the minimax search algorithm as described in the lectures.
@@ -173,7 +187,24 @@ class CustomPlayer:
             raise Timeout()
 
         # TODO: finish this function!
-        raise NotImplementedError
+
+        if depth == 0:
+            if maximizing_player:
+                score = self.score(game, game.active_player)
+            else:
+                score = self.score(game, game.inactive_player)
+            return score, None
+
+        if maximizing_player:
+            func = max
+        else:
+            func = min
+
+        moves = game.get_legal_moves(game.active_player)
+        results = [self.minimax(game.forecast_move(m), depth - 1, not maximizing_player) for m in moves]
+        scores = [r[0] for r in results]
+        index, score = func(enumerate(scores), key=operator.itemgetter(1))
+        return score, moves[index]
 
     def alphabeta(self, game, depth, alpha=float("-inf"), beta=float("inf"), maximizing_player=True):
         """Implement minimax search with alpha-beta pruning as described in the
@@ -217,4 +248,31 @@ class CustomPlayer:
             raise Timeout()
 
         # TODO: finish this function!
-        raise NotImplementedError
+
+        if depth == 0:
+            if maximizing_player:
+                score = self.score(game, game.active_player)
+            else:
+                score = self.score(game, game.inactive_player)
+            return score, None
+
+        return_node = None
+        moves = game.get_legal_moves(game.active_player)
+        if maximizing_player:
+            for m in moves:
+                if alpha >= beta:
+                    return alpha, return_node
+                new_alpha, _ = self.alphabeta(game.forecast_move(m), depth - 1, alpha, beta, not maximizing_player)
+                if alpha < new_alpha:
+                    alpha = new_alpha
+                    return_node = m
+            return alpha, return_node
+        else:
+            for m in moves:
+                if alpha >= beta:
+                    return beta, return_node
+                new_beta, _ = self.alphabeta(game.forecast_move(m), depth - 1, alpha, beta, not maximizing_player)
+                if beta > new_beta:
+                    beta = new_beta
+                    return_node = m
+            return beta, return_node
