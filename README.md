@@ -1,3 +1,5 @@
+**pdf version displays the latex equations https://github.com/ScottieY/AIND-Isolation/blob/master/README.pdf**
+
 # Game Playing AI
 
 ## Background
